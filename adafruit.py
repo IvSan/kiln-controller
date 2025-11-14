@@ -3,6 +3,7 @@
 import board
 import digitalio
 import adafruit_max31856
+import time
 
 spi = board.SPI()
 cs = digitalio.DigitalInOut(board.D5)
