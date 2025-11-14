@@ -10,3 +10,6 @@ print(resp)
 
 resp = spi.xfer2([0x0F | 0x80]) + spi.xfer2([0x00])  # Read command + read response
 print(resp)
+
+resp = spi.xfer2([0x8F, 0x00, 0x00, 0x00])  # send read command + 3 dummy bytes to clock out data
+print(resp)  # Should receive 4 bytes including dummy response
