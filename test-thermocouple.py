@@ -41,11 +41,11 @@ if(hasattr(config,'spi_sclk') and
     print("    config.spi_miso = %s BCM pin" % (config.spi_miso))
     print("    config.spi_cs   = %s BCM pin\n" % (config.spi_cs))
 else:
-    spi = board.SPI();
+    spi = board.SPI()
     print("Hardware SPI selected for reading thermocouple")
 
-cs = DigitalInOut(board.CE0)
-cs.switch_to_output(value=True)
+cs = digitalio.DigitalInOut(board.D5)
+cs.direction = digitalio.Direction.OUTPUT
 sensor = None
 
 print("\nboard: %s" % (board.board_id))
