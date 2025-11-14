@@ -44,7 +44,7 @@ else:
     spi = board.SPI();
     print("Hardware SPI selected for reading thermocouple")
 
-cs = DigitalInOut(board.CE0)
+cs = DigitalInOut(board.CE1)
 cs.switch_to_output(value=True)
 sensor = None
 
