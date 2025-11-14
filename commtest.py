@@ -21,7 +21,7 @@ from digitalio import DigitalInOut
 import adafruit_max31856
 
 spi = board.SPI()
-cs = DigitalInOut(board.CE0)
+cs = DigitalInOut(board.D5)
 sensor = adafruit_max31856.MAX31856(spi, cs)
 
 while True:
