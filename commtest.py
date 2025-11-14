@@ -16,6 +16,7 @@
 
 
 import board
+import time
 from digitalio import DigitalInOut
 import adafruit_max31856
 
