@@ -44,8 +44,8 @@ else:
     spi = board.SPI()
     print("Hardware SPI selected for reading thermocouple")
 
-cs = digitalio.DigitalInOut(board.D5)
-cs.direction = digitalio.Direction.OUTPUT
+cs = DigitalInOut(board.D5)
+cs.switch_to_output(value=True)
 sensor = None
 
 print("\nboard: %s" % (board.board_id))
