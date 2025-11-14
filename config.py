@@ -86,7 +86,7 @@ try:
     import board
 #    spi_sclk  = board.D17    #spi clock
 #    spi_miso  = board.D27    #spi Microcomputer In Serial Out
-#    spi_cs    = board.D22    #spi Chip Select
+    spi_cs    = board.D5    #spi Chip Select
 #    spi_mosi  = board.D10    #spi Microcomputer Out Serial In (not connected)
 #    gpio_heat = board.D23    #output that controls relay
     gpio_heat_invert = False #invert the output state
