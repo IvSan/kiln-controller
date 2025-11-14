@@ -20,9 +20,9 @@ listening_port = 8081
 # This is used to calculate a cost estimate before a run. It's also used
 # to produce the actual cost during a run. My kiln has three
 # elements that when my switches are set to high, consume 9460 watts.
-kwh_rate        = 0.1319  # cost per kilowatt hour per currency_type to calculate cost to run job
-kw_elements     = 9.460 # if the kiln elements are on, the wattage in kilowatts
-currency_type   = "$"   # Currency Symbol to show when calculating cost to run job
+kwh_rate        = 0.35  # cost per kilowatt hour per currency_type to calculate cost to run job
+kw_elements     = 3.300 # if the kiln elements are on, the wattage in kilowatts
+currency_type   = "€"   # Currency Symbol to show when calculating cost to run job
 
 ########################################################################
 #
@@ -99,8 +99,8 @@ except (NotImplementedError,AttributeError):
 # There are only two breakoutboards supported. 
 #   max31855 - only supports type K thermocouples
 #   max31856 - supports many thermocouples
-max31855 = 1
-max31856 = 0
+max31855 = 0
+max31856 = 1
 # uncomment these two lines if using MAX-31856
 import adafruit_max31856
 thermocouple_type = adafruit_max31856.ThermocoupleType.K
@@ -185,7 +185,7 @@ time_scale_profile  = "m" # s = Seconds | m = Minutes | h = Hours - Enter and vi
 # naturally cool off. If your SSR has failed/shorted/closed circuit, this
 # means your kiln receives full power until your house burns down.
 # this should not replace you watching your kiln or use of a kiln-sitter
-emergency_shutoff_temp = 2264 #cone 7
+emergency_shutoff_temp = 1300 #cone 7
 
 # If the current temperature is outside the pid control window,
 # delay the schedule until it does back inside. This allows for heating
