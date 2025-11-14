@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+
 import spidev
+
 spi = spidev.SpiDev()
 spi.open(0, 0)  # bus 0, device 0 (adjust if using CE1)
 spi.max_speed_hz = 500000
