@@ -26,3 +26,4 @@ sensor = adafruit_max31856.MAX31856(spi, cs)
 while True:
     temp = sensor.temperature
     print(f"Temperature: {temp:.2f} °C")
+    time.sleep(1)
