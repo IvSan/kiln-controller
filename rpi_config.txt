@@ -1,0 +1,4 @@
+/boot/firmware/config.txt
+gpio=17=op,dh
+dtparam=gpio3=on
+dtoverlay=gpio-shutdown,gpio_pin=3,active_low=1,gpio_pull=up
