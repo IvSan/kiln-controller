@@ -2,7 +2,6 @@
 import requests
 import json
 import time
-import datetime
 import logging
 
 # this monitors your kiln stats every N seconds
