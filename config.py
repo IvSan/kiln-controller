@@ -214,7 +214,7 @@ emergency_shutoff_temp = 1300 #cone 7
 # If the current temperature is outside the pid control window,
 # delay the schedule until it does back inside. This allows for heating
 # and cooling as fast as possible and not continuing until temp is reached.
-kiln_must_catch_up = True
+kiln_must_catch_up = False
 
 # This setting is required. 
 # This setting defines the window within which PID control occurs.
