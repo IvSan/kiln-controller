@@ -160,9 +160,13 @@ sensor_time_wait = 2
 # pid_ki = 1
 # pid_kd = 25
 
-pid_kp = 0.85
-pid_ki = 0.3
-pid_kd = 5
+# pid_kp = 0.85
+# pid_ki = 0.3
+# pid_kd = 5
+
+pid_kp = 0.7
+pid_ki = 0.25
+pid_kd = 3
 
 ########################################################################
 #
