@@ -51,9 +51,7 @@ def state():
 @app.get('/api/stats')
 def handle_api():
     log.info("/api/stats command received")
-    if hasattr(oven,'pid'):
-        if hasattr(oven.pid,'pidstats'):
-            return json.dumps(oven.pid.pidstats)
+    return json.dumps({})
 
 
 @app.post('/api')
@@ -105,12 +103,9 @@ def handle_api():
         memo = bottle.request.json['memo']
         log.info("memo=%s" % (memo))
 
-    # get stats during a run
     if bottle.request.json['cmd'] == 'stats':
         log.info("api stats command received")
-        if hasattr(oven,'pid'):
-            if hasattr(oven.pid,'pidstats'):
-                return json.dumps(oven.pid.pidstats)
+        return json.dumps({})
 
     return { "success" : True }
 

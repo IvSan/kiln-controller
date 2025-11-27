@@ -131,51 +131,6 @@ seek_start = True
 # temperature_average_samples times during and the average value is used.
 sensor_time_wait = 2
 
-
-########################################################################
-#
-#   PID parameters
-#
-# These parameters control kiln temperature change. These settings work
-# well with the simulated oven. You must tune them to work well with 
-# your specific kiln. Note that the integral pid_ki is
-# inverted so that a smaller number means more integral action.
-# pid_kp = 10   # Proportional 25,200,200
-# pid_ki = 80   # Integral
-# pid_kd = 220.83497910261562 # Derivative
-
-# pid_kp = -29.89003267141182
-# pid_ki = 1.5388455762201092
-# pid_kd = 343.70656583570917
-
-# pid_kp = 1
-# pid_ki = 1.5388455762201092
-# pid_kd = 100
-
-# pid_kp = 0.9
-# pid_ki = 1.3
-# pid_kd = 50
-
-# pid_kp = 0.85
-# pid_ki = 1
-# pid_kd = 25
-
-# pid_kp = 0.85
-# pid_ki = 0.3
-# pid_kd = 5
-
-pid_kp = 0.7
-pid_ki = 0.25
-pid_kd = 3
-
-########################################################################
-#
-# Initial heating and Integral Windup
-#
-# this setting is deprecated and is no longer used. this happens by
-# default and is the expected behavior.
-stop_integral_windup = True
-
 ########################################################################
 #
 #   Simulation parameters
@@ -210,20 +165,6 @@ time_scale_profile  = "m" # s = Seconds | m = Minutes | h = Hours - Enter and vi
 # means your kiln receives full power until your house burns down.
 # this should not replace you watching your kiln or use of a kiln-sitter
 emergency_shutoff_temp = 1300 #cone 7
-
-# If the current temperature is outside the pid control window,
-# delay the schedule until it does back inside. This allows for heating
-# and cooling as fast as possible and not continuing until temp is reached.
-kiln_must_catch_up = False
-
-# This setting is required. 
-# This setting defines the window within which PID control occurs.
-# Outside this window (N degrees below or above the current target)
-# the elements are either 100% on because the kiln is too cold
-# or 100% off because the kiln is too hot. No integral builds up
-# outside the window. The bigger you make the window, the more
-# integral you will accumulate. This should be a positive integer.
-pid_control_window = 1 #degrees
 
 # thermocouple offset
 # If you put your thermocouple in ice water and it reads 36F, you can
@@ -292,12 +233,3 @@ kiln_profiles_directory = os.path.abspath(os.path.join(os.path.dirname( __file__
 #kiln_profiles_directory = os.path.abspath(os.path.join(os.path.dirname( __file__ ),'..','kiln-profiles','pottery')) 
 
 
-########################################################################
-# low temperature throttling of elements
-# kiln elements have lots of power and tend to drastically overshoot
-# at low temperatures. When under the set point and outside the PID
-# control window and below throttle_below_temp, only throttle_percent
-# of the elements are used max.
-# To prevent throttling, set throttle_percent to 100.
-throttle_below_temp = 1
-throttle_percent = 100

@@ -344,8 +344,6 @@ class Oven(threading.Thread):
         self.heat = 0
         self.heat_rate = 0
         self.heat_rate_temps = []
-        self.pid = PID(ki=config.pid_ki, kd=config.pid_kd, kp=config.pid_kp)
-        self.catching_up = False
 
     @staticmethod
     def get_start_from_temperature(profile, temp):
@@ -400,26 +398,6 @@ class Oven(threading.Thread):
 
     def get_start_time(self):
         return datetime.datetime.now() - datetime.timedelta(milliseconds = self.runtime * 1000)
-
-    def kiln_must_catch_up(self):
-        '''shift the whole schedule forward in time by one time_step
-        to wait for the kiln to catch up'''
-        if config.kiln_must_catch_up == True:
-            temp = self.board.temp_sensor.temperature() + \
-                config.thermocouple_offset
-            # kiln too cold, wait for it to heat up
-            if self.target - temp > config.pid_control_window:
-                log.info("kiln must catch up, too cold, shifting schedule")
-                self.start_time = self.get_start_time()
-                self.catching_up = True;
-                return
-            # kiln too hot, wait for it to cool down
-            if temp - self.target > config.pid_control_window:
-                log.info("kiln must catch up, too hot, shifting schedule")
-                self.start_time = self.get_start_time()
-                self.catching_up = True;
-                return
-            self.catching_up = False;
 
     def update_runtime(self):
 
@@ -481,8 +459,6 @@ class Oven(threading.Thread):
             'kwh_rate': config.kwh_rate,
             'currency_type': config.currency_type,
             'profile': self.profile.name if self.profile else None,
-            'pidstats': self.pid.pidstats,
-            'catching_up': self.catching_up,
         }
         return state
 
@@ -562,7 +538,6 @@ class Oven(threading.Thread):
             if self.state == "RUNNING":
                 self.update_cost()
                 self.save_automatic_restart_state()
-                self.kiln_must_catch_up()
                 self.update_runtime()
                 self.update_target_temp()
                 self.heat_then_cool()
@@ -608,10 +583,10 @@ class SimulatedOven(Oven):
     def update_target_temp(self):
         self.target = self.profile.get_target_temperature(self.runtime)
 
-    def heating_energy(self,pid):
-        # using pid here simulates the element being on for
-        # only part of the time_step
-        self.Q_h = self.p_heat * self.time_step * pid
+    def heating_energy(self, control):
+        # control is 0.0 (off) or 1.0 (on) representing the fraction
+        # of time_step the element is on
+        self.Q_h = self.p_heat * self.time_step * control
 
     def temp_changes(self):
         #temperature change of heat element by heating
@@ -631,46 +606,41 @@ class SimulatedOven(Oven):
         self.board.temp_sensor.simulated_temperature = self.t
 
     def heat_then_cool(self):
-        now_simulator = self.start_time + datetime.timedelta(milliseconds = self.runtime * 1000)
-        pid = self.pid.compute(self.target,
-                               self.board.temp_sensor.temperature() +
-                               config.thermocouple_offset, now_simulator)
+        temp = self.board.temp_sensor.temperature() + config.thermocouple_offset
 
-        heat_on = float(self.time_step * pid)
-        heat_off = float(self.time_step * (1 - pid))
+        # Simple on/off control: turn on if below target, off if at or above target
+        if temp < self.target:
+            control = 1.0
+            heat_on = float(self.time_step)
+            heat_off = 0.0
+            self.heat = heat_on
+        else:
+            control = 0.0
+            heat_on = 0.0
+            heat_off = float(self.time_step)
+            self.heat = 0.0
 
-        self.heating_energy(pid)
+        self.heating_energy(control)
         self.temp_changes()
 
-        # self.heat is for the front end to display if the heat is on
-        self.heat = 0.0
-        if heat_on > 0:
-            self.heat = heat_on
-
-        log.info("simulation: -> %dW heater: %.0f -> %dW oven: %.0f -> %dW env" % (int(self.p_heat * pid),
+        log.info("simulation: -> %dW heater: %.0f -> %dW oven: %.0f -> %dW env" % (int(self.p_heat * control),
             self.t_h,
             int(self.p_ho),
             self.t,
             int(self.p_env)))
 
         time_left = self.totaltime - self.runtime
+        error = self.target - temp
 
-        try:
-            log.info("temp=%.2f, target=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
-                (self.pid.pidstats['ispoint'],
-                self.pid.pidstats['setpoint'],
-                self.pid.pidstats['err'],
-                self.pid.pidstats['pid'],
-                self.pid.pidstats['p'],
-                self.pid.pidstats['i'],
-                self.pid.pidstats['d'],
-                heat_on,
-                heat_off,
-                self.runtime,
-                self.totaltime,
-                time_left))
-        except KeyError:
-            pass
+        log.info("temp=%.2f, target=%.2f, error=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
+            (temp,
+            self.target,
+            error,
+            heat_on,
+            heat_off,
+            self.runtime,
+            self.totaltime,
+            time_left))
 
         # we don't actually spend time heating & cooling during
         # a simulation, so sleep.
@@ -695,39 +665,34 @@ class RealOven(Oven):
         self.output.cool(0)
 
     def heat_then_cool(self):
-        pid = self.pid.compute(self.target,
-                               self.board.temp_sensor.temperature() +
-                               config.thermocouple_offset, datetime.datetime.now())
+        temp = self.board.temp_sensor.temperature() + config.thermocouple_offset
 
-        heat_on = float(self.time_step * pid)
-        heat_off = float(self.time_step * (1 - pid))
-
-        # self.heat is for the front end to display if the heat is on
-        self.heat = 0.0
-        if heat_on > 0:
+        # Simple on/off control: turn on if below target, off if at or above target
+        if temp < self.target:
+            heat_on = float(self.time_step)
+            heat_off = 0.0
             self.heat = 1.0
+        else:
+            heat_on = 0.0
+            heat_off = float(self.time_step)
+            self.heat = 0.0
 
         if heat_on:
             self.output.heat(heat_on)
         if heat_off:
             self.output.cool(heat_off)
+
         time_left = self.totaltime - self.runtime
-        try:
-            log.info("temp=%.2f, target=%.2f, error=%.2f, pid=%.2f, p=%.2f, i=%.2f, d=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
-                (self.pid.pidstats['ispoint'],
-                self.pid.pidstats['setpoint'],
-                self.pid.pidstats['err'],
-                self.pid.pidstats['pid'],
-                self.pid.pidstats['p'],
-                self.pid.pidstats['i'],
-                self.pid.pidstats['d'],
-                heat_on,
-                heat_off,
-                self.runtime,
-                self.totaltime,
-                time_left))
-        except KeyError:
-            pass
+        error = self.target - temp
+        log.info("temp=%.2f, target=%.2f, error=%.2f, heat_on=%.2f, heat_off=%.2f, run_time=%d, total_time=%d, time_left=%d" %
+            (temp,
+            self.target,
+            error,
+            heat_on,
+            heat_off,
+            self.runtime,
+            self.totaltime,
+            time_left))
 
 class Profile():
     def __init__(self, json_data):
@@ -784,82 +749,3 @@ class Profile():
         incl = float(next_point[1] - prev_point[1]) / float(next_point[0] - prev_point[0])
         temp = prev_point[1] + (time - prev_point[0]) * incl
         return temp
-
-
-class PID():
-
-    def __init__(self, ki=1, kp=1, kd=1):
-        self.ki = ki
-        self.kp = kp
-        self.kd = kd
-        self.lastNow = datetime.datetime.now()
-        self.iterm = 0
-        self.lastErr = 0
-        self.pidstats = {}
-
-    # FIX - this was using a really small window where the PID control
-    # takes effect from -1 to 1. I changed this to various numbers and
-    # settled on -50 to 50 and then divide by 50 at the end. This results
-    # in a larger PID control window and much more accurate control...
-    # instead of what used to be binary on/off control.
-    def compute(self, setpoint, ispoint, now):
-        timeDelta = (now - self.lastNow).total_seconds()
-
-        window_size = 100
-
-        error = float(setpoint - ispoint)
-
-        # this removes the need for config.stop_integral_windup
-        # it turns the controller into a binary on/off switch
-        # any time it's outside the window defined by
-        # config.pid_control_window
-        icomp = 0
-        output = 0
-        out4logs = 0
-        dErr = 0
-        if error < (-1 * config.pid_control_window):
-            log.info("kiln outside pid control window, max cooling")
-            output = 0
-            # it is possible to set self.iterm=0 here and also below
-            # but I dont think its needed
-        elif error > (1 * config.pid_control_window):
-            log.info("kiln outside pid control window, max heating")
-            output = 1
-            if config.throttle_below_temp and config.throttle_percent:
-                if setpoint <= config.throttle_below_temp:
-                    output = config.throttle_percent/100
-                    log.info("max heating throttled at %d percent below %d degrees to prevent overshoot" % (config.throttle_percent,config.throttle_below_temp))
-        else:
-            icomp = (error * timeDelta * (1/self.ki))
-            self.iterm += (error * timeDelta * (1/self.ki))
-            dErr = (error - self.lastErr) / timeDelta
-            output = self.kp * error + self.iterm + self.kd * dErr
-            output = sorted([-1 * window_size, output, window_size])[1]
-            out4logs = output
-            output = float(output / window_size)
-            
-        self.lastErr = error
-        self.lastNow = now
-
-        # no active cooling
-        if output < 0:
-            output = 0
-
-        self.pidstats = {
-            'time': time.mktime(now.timetuple()),
-            'timeDelta': timeDelta,
-            'setpoint': setpoint,
-            'ispoint': ispoint,
-            'err': error,
-            'errDelta': dErr,
-            'p': self.kp * error,
-            'i': self.iterm,
-            'd': self.kd * dErr,
-            'kp': self.kp,
-            'ki': self.ki,
-            'kd': self.kd,
-            'pid': out4logs,
-            'out': output,
-        }
-
-        return output
