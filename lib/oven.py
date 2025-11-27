@@ -695,9 +695,10 @@ class RealOven(Oven):
         self.output.cool(0)
 
     def heat_then_cool(self):
-        pid = self.pid.compute(self.target,
-                               self.board.temp_sensor.temperature() +
-                               config.thermocouple_offset, datetime.datetime.now())
+        # pid = self.pid.compute(self.target,
+        #                        self.board.temp_sensor.temperature() +
+        #                        config.thermocouple_offset, datetime.datetime.now())
+        pid = 1 if self.target > self.board.temp_sensor.temperature() else 0
 
         heat_on = float(self.time_step * pid)
         heat_off = float(self.time_step * (1 - pid))
